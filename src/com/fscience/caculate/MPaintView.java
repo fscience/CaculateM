@@ -186,20 +186,21 @@ public class MPaintView extends JPanel {
 		p1 = matrix.multiplyPoint(new MPoint(trackCenterX - calculate.bottomLeft, this.designTrackHeight + 0.2, 0));
 		p2 = matrix.multiplyPoint(new MPoint(trackCenterX + calculate.bottomRight, this.designTrackHeight + 0.2, 0));
 		g.drawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
-		g.drawString("[" + calculate.bottomLeft + ", " + calculate.hBottomLeft + "]", (int)p1.x + 10, (int)p2.y);
-		g.drawString("[" + calculate.bottomRight + ", " + calculate.hBottomRight + "]", (int)p2.x - 150, (int)p2.y);
 		//中心线
 		p1 = matrix.multiplyPoint(new MPoint(trackCenterX - calculate.centerLeft, bounds.maxY - 2.6, 0));
 		p2 = matrix.multiplyPoint(new MPoint(trackCenterX + calculate.centerRight, bounds.maxY - 2.6, 0));
 		g.drawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
-		g.drawString("[" + calculate.centerLeft + ", " + calculate.hCenterLeft + "]", (int)p1.x + 10, (int)p2.y);
-		g.drawString("[" + calculate.centerRight + ", " + calculate.hCenterRight + "]", (int)p2.x - 150, (int)p2.y);
 		//最高线
 		p1 = matrix.multiplyPoint(new MPoint(trackCenterX - calculate.topLeft, this.designTrackHeight + 3.1, 0));
 		p2 = matrix.multiplyPoint(new MPoint(trackCenterX + calculate.topRight, this.designTrackHeight + 3.1, 0));
 		g.drawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
-		g.drawString("[" + calculate.topLeft + ", " + calculate.hTopLeft + "]", (int)p1.x + 10, (int)p2.y);
-		g.drawString("[" + calculate.topRight + ", " + calculate.hTopRight + "]", (int)p2.x - 150, (int)p2.y);
+		
+		//上
+		g.drawString("上：[" + calculate.topLeft + ", " + calculate.hTopLeft + "]，[" + calculate.topRight + ", " + calculate.hTopRight + "]", 10, 15);
+		//中
+		g.drawString("中：[" + calculate.centerLeft + ", " + calculate.hCenterLeft + "]，[" + calculate.centerRight + ", " + calculate.hCenterRight + "]", 10, 30);
+		//下
+		g.drawString("下：[" + calculate.bottomLeft + ", " + calculate.hBottomLeft + "]，[" + calculate.bottomRight + ", " + calculate.hBottomRight + "]", 10, 45);
 	}
 	
 	private ArrayList<MPoint> filterBadPoints(ArrayList<MPoint> array, MBounds bounds) {
@@ -229,9 +230,10 @@ public class MPaintView extends JPanel {
 		MPoint center = new MPoint(trackCenterX, (bounds.maxY + bounds.minY) / 2.0, 1);
 		double radius = (bounds.maxX - bounds.minX) / 2.0;
 		
-		double stemp = 0.01;
-		int count = 0;
-		double allX = points.get(0).x, allY = points.get(0).y;
+		double angleStemp = Math.PI / 90;
+		
+		int startIndex = 0;
+		double startAngle = Math.asin((points.get(0).y - center.y) / points.get(0).distanceForXY(center));
 		for (int idx = 1; idx < points.size(); idx ++) {
 			MPoint point = points.get(idx);
 			
@@ -239,24 +241,87 @@ public class MPaintView extends JPanel {
 				continue;
 			}
 			
-			count++;
-			{
-				if ((Math.abs(point.x - (allX / count)) > stemp) ||
-					(Math.abs(point.y - (allY / count)) > stemp)) {
-					MPoint calPoint = new MPoint(allX / count, allY / count, point.z);
-					fixdPoints.add(calPoint);
-					
-					allX = 0; allY = 0;
-					count = 0;
+			double angle = Math.asin((points.get(idx).y - center.y) / points.get(idx).distanceForXY(center));
+			if ((Math.abs(angle - startAngle) > angleStemp) || ((idx + 1) == points.size())) {
+				double x = 0, y = 0;
+				for (int i = startIndex; i < idx; i ++) {
+					x += points.get(i).x;
+					y += points.get(i).y;
 				}
+				MPoint calPoint = new MPoint(x / (idx - startIndex), y / (idx - startIndex), point.z);
+				fixdPoints.add(calPoint);
 				
-				allX += point.x;
-				allY += point.y;
+				startIndex = idx;
+				startAngle = angle;
 			}
+			
+//			System.out.println(Math.toDegrees(angle));
 		}
+		
+//		double distance1 = points.get(0).distanceForXY(center);
+//		double distance2;
+//		for (int idx = 1; idx < points.size(); idx ++) {
+//			MPoint point = points.get(idx);
+//			
+//			if (Math.abs((radius - center.distanceForXY(point))) > 0.5) {
+//				continue;
+//			}
+//			
+//			distance2 = points.get(idx).distanceForXY(center);
+//			
+//			count++;
+//			{
+//				if ((Math.abs(point.x - (allX / count)) > stemp) ||
+//					(Math.abs(point.y - (allY / count)) > stemp)) {
+//					MPoint calPoint = new MPoint(allX / count, allY / count, point.z);
+//					fixdPoints.add(calPoint);
+//					
+//					allX = 0; allY = 0;
+//					count = 0;
+//				}
+//				
+//				allX += point.x;
+//				allY += point.y;
+//			}
+//		}
 		
 		return fixdPoints;
 	}
+	
+//	private ArrayList<MPoint> fixPoints(ArrayList<MPoint> points) {
+//		ArrayList<MPoint> fixdPoints = new ArrayList<MPoint>();
+//		
+//		MPoint center = new MPoint(trackCenterX, (bounds.maxY + bounds.minY) / 2.0, 1);
+//		double radius = (bounds.maxX - bounds.minX) / 2.0;
+//		
+//		double stemp = 0.01;
+//		int count = 0;
+//		double allX = points.get(0).x, allY = points.get(0).y;
+//		for (int idx = 1; idx < points.size(); idx ++) {
+//			MPoint point = points.get(idx);
+//			
+//			if (Math.abs((radius - center.distanceForXY(point))) > 0.5) {
+//				continue;
+//			}
+//			
+//			count++;
+//			{
+//				if ((Math.abs(point.x - (allX / count)) > stemp) ||
+//					(Math.abs(point.y - (allY / count)) > stemp)) {
+//					MPoint calPoint = new MPoint(allX / count, allY / count, point.z);
+//					fixdPoints.add(calPoint);
+//					
+//					allX = 0; allY = 0;
+//					count = 0;
+//				}
+//				
+//				allX += point.x;
+//				allY += point.y;
+//			}
+//		}
+//		
+//		return fixdPoints;
+//	}
 	
 	class SortCircle implements Comparator<MPoint> {
 		MPoint center = null;
@@ -319,9 +384,9 @@ public class MPaintView extends JPanel {
 
 		@Override
 		public void mouseClicked(MouseEvent e) {
-			GLMatrix invertMatrix = matrix.invert();
-			MPoint point = invertMatrix.multiplyPoint(new MPoint(e.getX(), e.getY(), 0));
-			System.out.println("X: " + point.x + " Y: " + point.y);
+//			GLMatrix invertMatrix = matrix.invert();
+//			MPoint point = invertMatrix.multiplyPoint(new MPoint(e.getX(), e.getY(), 0));
+//			System.out.println("X: " + point.x + " Y: " + point.y);
 		}
 
 		@Override

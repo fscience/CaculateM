@@ -171,10 +171,13 @@ public class CalculateFrame extends JFrame implements ActionListener {
 			
 			JPanel parentPanel = new JPanel();
 			
+			JPanel toolPanel = new JPanel();
+			toolPanel.add(loadFileButton);
+			toolPanel.add(exportFileButton);
+			
 			JPanel leftPanel = new JPanel();
 			leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.PAGE_AXIS));
-			leftPanel.add(loadFileButton);
-			leftPanel.add(exportFileButton);
+			leftPanel.add(toolPanel);
 			leftPanel.add(panel1);
 //			leftPanel.add(panel);
 			leftPanel.add(listView);
