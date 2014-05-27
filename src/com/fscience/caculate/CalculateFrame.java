@@ -9,9 +9,7 @@ import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
@@ -27,11 +25,6 @@ import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.TitledBorder;
 
-import jxl.Workbook;
-import jxl.write.Label;
-import jxl.write.WritableSheet;
-import jxl.write.WritableWorkbook;
-
 public class CalculateFrame extends JFrame implements ActionListener {
 	private static final long serialVersionUID = 1L;
 	
@@ -40,7 +33,7 @@ public class CalculateFrame extends JFrame implements ActionListener {
 	JTextField centerField = null;
 	JTextField trackField = null;
 	MPaintView view = null;
-	JList listView = null;
+	JList<MFiledSaver> listView = null;
 	
 	MParteSortedArray dumpArray = null;
 	
@@ -124,7 +117,7 @@ public class CalculateFrame extends JFrame implements ActionListener {
 			panel.add(button1);
 			
 			//
-			listView = new JList();
+			listView = new JList<MFiledSaver>();
 			listView.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			listView.addMouseListener(new MouseAdapter() {
 				@Override
@@ -342,23 +335,10 @@ public class CalculateFrame extends JFrame implements ActionListener {
 	}
 
 	public void exportToExcel(File saveFile) {
-		String[] title = { "编号", "产品名称", "产品价格", "产品数量", "生产日期", "产地", "是否出口" };
-		try {
-			OutputStream os = new FileOutputStream(saveFile); // 新建立一个jxl文件,即在e盘下生成testJXL.xls
-			WritableWorkbook wwb = Workbook.createWorkbook(os); // 创建Excel工作薄
-			WritableSheet sheet = wwb.createSheet("导出结果", 0); // 添加第一个工作表并设置第一个Sheet的名字
-			Label label;
-			for (int i = 0; i < title.length; i++) {
-				// Label(x,y,z) 代表单元格的第x+1列，第y+1行, 内容z
-				// 在Label对象的子对象中指明单元格的位置和内容
-				label = new Label(i, 0, title[i]);
-				// 将定义好的单元格添加到工作表中
-				sheet.addCell(label);
-			}
-			wwb.write();
-			wwb.close();
-			os.close();
-		} catch (Exception e) {
-		}
+//		if (dumpArray == null) {
+//			JOptionPane.showMessageDialog(this, "请先加载文件！");
+//			return;
+//		}
+		new MExportToExcel(dumpArray, saveFile);
 	}
 }

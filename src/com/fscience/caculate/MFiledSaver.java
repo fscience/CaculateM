@@ -1,9 +1,12 @@
 package com.fscience.caculate;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 
@@ -65,5 +68,35 @@ public class MFiledSaver extends MPoint {
 			points.clear();
 		} catch (IOException e) {
 		}
+	}
+
+	public MBounds loadFromFile() {
+		points.clear();
+		
+		MBounds bounds = new MBounds();
+		try {
+			FileInputStream stream = new FileInputStream(".CalculateM" + File.separator + (int)z + ".mc");
+			InputStreamReader read = new InputStreamReader(stream);
+			BufferedReader bufRead = new BufferedReader(read);
+			
+			String tmpString = null;
+			while ((tmpString = bufRead.readLine()) != null) {
+				String coord[] = tmpString.split("\t");
+				if (coord.length == 3) {
+					// y, z, x
+					MPoint point = new MPoint(coord[1], coord[2], "0");
+					points.add(point);
+					bounds.addPoint(point);
+				}
+			}
+			
+			bufRead.close();
+			read.close();
+			stream.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return bounds;
 	}
 }

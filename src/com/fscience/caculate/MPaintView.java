@@ -9,8 +9,6 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 
 import javax.swing.JPanel;
 
@@ -25,8 +23,6 @@ public class MPaintView extends JPanel {
 	
 	GLMatrix matrix = null;
 	MouseProcess process = null;
-	ArrayList<MPoint> sortedPoints = null;
-	ArrayList<MPoint> fixdPoints = null;
 	
 	MCalculate calculate = null;
 	
@@ -55,9 +51,10 @@ public class MPaintView extends JPanel {
 			centerX = (Math.abs(centerX - trackCenterX) < 0.5) ? trackCenterX : centerX;
 			this.trackCenterX = centerX;
 		}
-		this.sortedPoints = filterBadPoints(points, bounds);
 		
-		fixdPoints = fixPoints(this.sortedPoints);
+		if (calculate == null)
+			calculate = new MCalculate();
+		calculate.calculate(orgPoints, bounds, trackHeight, trackCenterX);
 		
 		double scale = 500 / (bounds.maxX - bounds.minX);
 		matrix.identity();
@@ -66,10 +63,6 @@ public class MPaintView extends JPanel {
 		matrix.rotateX(Math.PI);
 		matrix.translate(-bounds.center().x, -bounds.center().y, -bounds.center().z);
 		this.repaint();
-		
-		if (calculate == null)
-			calculate = new MCalculate();
-		calculate.calculate(sortedPoints, fixdPoints, bounds, trackHeight, this.trackCenterX);
 				
 		process.scale = scale;
 		/*Timer timer = new Timer();
@@ -108,7 +101,8 @@ public class MPaintView extends JPanel {
 		
 		if (orgPoints == null) return;
 		
-//		MPoint center = new MPoint(trackCenterX, (bounds.maxY + bounds.minY) / 2.0, 0);
+		ArrayList<MPoint> fixdPoints = calculate.filtedPoints;
+		ArrayList<MPoint> sortedPoints = calculate.sortedPoints;
 		
 		//拟合后的轨道切面
 		if (showFixdLine){
@@ -195,172 +189,13 @@ public class MPaintView extends JPanel {
 		p2 = matrix.multiplyPoint(new MPoint(trackCenterX + calculate.topRight, this.designTrackHeight + 3.1, 0));
 		g.drawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 		
+		g.setColor(Color.WHITE);
 		//上
 		g.drawString("上：[" + calculate.topLeft + ", " + calculate.hTopLeft + "]，[" + calculate.topRight + ", " + calculate.hTopRight + "]", 10, 15);
 		//中
 		g.drawString("中：[" + calculate.centerLeft + ", " + calculate.hCenterLeft + "]，[" + calculate.centerRight + ", " + calculate.hCenterRight + "]", 10, 30);
 		//下
 		g.drawString("下：[" + calculate.bottomLeft + ", " + calculate.hBottomLeft + "]，[" + calculate.bottomRight + ", " + calculate.hBottomRight + "]", 10, 45);
-	}
-	
-	private ArrayList<MPoint> filterBadPoints(ArrayList<MPoint> array, MBounds bounds) {
-		MPoint center = new MPoint(trackCenterX, (bounds.maxY + bounds.minY) / 2.0, 1);
-//		double radius = (bounds.maxX - bounds.minX) / 2.0;
-//		double ex = radius / 20.0;
-//		
-//		ArrayList<MPoint> filterArray = new ArrayList<MPoint>();
-//		for (MPoint point : array) {
-//			if (Math.abs((radius - center.distanceForXY(point))) <= ex) {
-//				
-//				filterArray.add(point);
-//			}
-//		}
-//		
-//		Collections.sort(filterArray, new SortCircle(new MPoint(center.x, center.y, 1)));
-//		
-//		return filterArray;
-		
-		Collections.sort(array, new SortCircle(new MPoint(center.x, center.y, 1)));
-		return array;
-	}
-	
-	private ArrayList<MPoint> fixPoints(ArrayList<MPoint> points) {
-		ArrayList<MPoint> fixdPoints = new ArrayList<MPoint>();
-		
-		MPoint center = new MPoint(trackCenterX, (bounds.maxY + bounds.minY) / 2.0, 1);
-		double radius = (bounds.maxX - bounds.minX) / 2.0;
-		
-		double angleStemp = Math.PI / 90;
-		
-		int startIndex = 0;
-		double startAngle = Math.asin((points.get(0).y - center.y) / points.get(0).distanceForXY(center));
-		for (int idx = 1; idx < points.size(); idx ++) {
-			MPoint point = points.get(idx);
-			
-			if (Math.abs((radius - center.distanceForXY(point))) > 0.5) {
-				continue;
-			}
-			
-			double angle = Math.asin((points.get(idx).y - center.y) / points.get(idx).distanceForXY(center));
-			if ((Math.abs(angle - startAngle) > angleStemp) || ((idx + 1) == points.size())) {
-				double x = 0, y = 0;
-				for (int i = startIndex; i < idx; i ++) {
-					x += points.get(i).x;
-					y += points.get(i).y;
-				}
-				MPoint calPoint = new MPoint(x / (idx - startIndex), y / (idx - startIndex), point.z);
-				fixdPoints.add(calPoint);
-				
-				startIndex = idx;
-				startAngle = angle;
-			}
-			
-//			System.out.println(Math.toDegrees(angle));
-		}
-		
-//		double distance1 = points.get(0).distanceForXY(center);
-//		double distance2;
-//		for (int idx = 1; idx < points.size(); idx ++) {
-//			MPoint point = points.get(idx);
-//			
-//			if (Math.abs((radius - center.distanceForXY(point))) > 0.5) {
-//				continue;
-//			}
-//			
-//			distance2 = points.get(idx).distanceForXY(center);
-//			
-//			count++;
-//			{
-//				if ((Math.abs(point.x - (allX / count)) > stemp) ||
-//					(Math.abs(point.y - (allY / count)) > stemp)) {
-//					MPoint calPoint = new MPoint(allX / count, allY / count, point.z);
-//					fixdPoints.add(calPoint);
-//					
-//					allX = 0; allY = 0;
-//					count = 0;
-//				}
-//				
-//				allX += point.x;
-//				allY += point.y;
-//			}
-//		}
-		
-		return fixdPoints;
-	}
-	
-//	private ArrayList<MPoint> fixPoints(ArrayList<MPoint> points) {
-//		ArrayList<MPoint> fixdPoints = new ArrayList<MPoint>();
-//		
-//		MPoint center = new MPoint(trackCenterX, (bounds.maxY + bounds.minY) / 2.0, 1);
-//		double radius = (bounds.maxX - bounds.minX) / 2.0;
-//		
-//		double stemp = 0.01;
-//		int count = 0;
-//		double allX = points.get(0).x, allY = points.get(0).y;
-//		for (int idx = 1; idx < points.size(); idx ++) {
-//			MPoint point = points.get(idx);
-//			
-//			if (Math.abs((radius - center.distanceForXY(point))) > 0.5) {
-//				continue;
-//			}
-//			
-//			count++;
-//			{
-//				if ((Math.abs(point.x - (allX / count)) > stemp) ||
-//					(Math.abs(point.y - (allY / count)) > stemp)) {
-//					MPoint calPoint = new MPoint(allX / count, allY / count, point.z);
-//					fixdPoints.add(calPoint);
-//					
-//					allX = 0; allY = 0;
-//					count = 0;
-//				}
-//				
-//				allX += point.x;
-//				allY += point.y;
-//			}
-//		}
-//		
-//		return fixdPoints;
-//	}
-	
-	class SortCircle implements Comparator<MPoint> {
-		MPoint center = null;
-		
-		public SortCircle(MPoint center) {
-			this.center = center;
-		}
-		
-		@Override
-		public int compare(MPoint o1, MPoint o2) {
-			double distance1 = o1.distanceForXY(center);
-			double distance2 = o2.distanceForXY(center);
-			
-			if ((o1.y >= center.y) && (o2.y >= center.y)) {
-//				double val = ((o1.x - center.x) / distance1) - ((o2.x - center.x) / distance2);
-				double val = ((o1.x - center.x) * distance2) - ((o2.x - center.x) * distance1);
-				
-				if (val > 0) return 1;
-				else if (val < 0) return -1;
-				return 0;
-//				return (int)((((o1.x - center.x) / distance1) - ((o2.x - center.x) / distance2)) * 1000);
-//				return (int)((o1.x - o2.x) * 100);
-			} else if ((o1.y < center.y) && (o2.y < center.y)) {
-//				double val = ((o2.x - center.x) / distance2) - ((o1.x - center.x) / distance1);
-				double val = ((o2.x - center.x) * distance1) - ((o1.x - center.x) * distance2);
-				
-				if (val > 0) return 1;
-				else if (val < 0) return -1;
-				return 0;
-//				return (int)((((o2.x - center.x) / distance2) - ((o1.x - center.x) / distance1)) * 1000);
-//				return (int)((o2.x - o1.x) * 100);
-			} else {
-				double val = o1.y - o2.y;
-				
-				if (val > 0) return 1;
-				else if (val < 0) return -1;
-				return 0;
-			}
-		}
 	}
 	
 	class MouseProcess implements MouseListener, MouseMotionListener, MouseWheelListener {
@@ -370,6 +205,8 @@ public class MPaintView extends JPanel {
 		
 		@Override
 		public void mouseDragged(MouseEvent arg0) {
+			if (bounds == null) return;
+			
 			matrix.identity();
 			matrix.translate(arg0.getX(), arg0.getY(), 0);
 			matrix.scale(scale, scale, 1);
@@ -410,6 +247,8 @@ public class MPaintView extends JPanel {
 
 		@Override
 		public void mouseWheelMoved(MouseWheelEvent arg0) {
+			if (bounds == null) return;
+			
 			GLMatrix invertMatrix = matrix.invert();
 			MPoint point = invertMatrix.multiplyPoint(new MPoint(arg0.getX(), arg0.getY(), 0));
 			
